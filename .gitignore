@@ -1,0 +1,27 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+coverage/
+.vitest/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# npm
+.npm/
+*.tgz
+
+# Editors / IDEs
+.claude/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
