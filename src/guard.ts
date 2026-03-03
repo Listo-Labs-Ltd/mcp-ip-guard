@@ -204,8 +204,7 @@ export function createIpGuard(options: IpGuardOptions = {}): IpGuard {
     const clientIp = getClientIp(req);
 
     if (!isAllowed(clientIp)) {
-      const path =
-        req.url ?? 'unknown';
+      const path = req.url ?? 'unknown';
 
       if (debug) {
         console.log(`[mcp-ip-guard] Blocked IP: ${clientIp} on ${path}`);

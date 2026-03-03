@@ -7,9 +7,7 @@ function mockReq(
   xForwardedFor?: string | string[],
 ): IncomingMessage {
   return {
-    headers: xForwardedFor
-      ? { 'x-forwarded-for': xForwardedFor }
-      : {},
+    headers: xForwardedFor ? { 'x-forwarded-for': xForwardedFor } : {},
     socket: { remoteAddress },
     url: '/mcp',
   } as unknown as IncomingMessage;

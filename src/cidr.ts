@@ -18,10 +18,7 @@ export function parseCidr(cidr: string): ParsedRange | null {
   if (isNaN(prefix) || prefix < 0 || prefix > 32) return null;
 
   const parts = ipStr.split('.').map((p) => parseInt(p, 10));
-  if (
-    parts.length !== 4 ||
-    parts.some((p) => isNaN(p) || p < 0 || p > 255)
-  ) {
+  if (parts.length !== 4 || parts.some((p) => isNaN(p) || p < 0 || p > 255)) {
     return null;
   }
 
@@ -37,10 +34,7 @@ export function parseCidr(cidr: string): ParsedRange | null {
  */
 export function parseIpv4(ip: string): number | null {
   const parts = ip.split('.').map((p) => parseInt(p, 10));
-  if (
-    parts.length !== 4 ||
-    parts.some((p) => isNaN(p) || p < 0 || p > 255)
-  ) {
+  if (parts.length !== 4 || parts.some((p) => isNaN(p) || p < 0 || p > 255)) {
     return null;
   }
   return (
