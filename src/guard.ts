@@ -31,7 +31,7 @@ export interface IpGuardOptions {
   additionalRanges?: string[];
 
   /**
-   * Allow localhost (127.0.0.1, ::1) when NODE_ENV !== "production".
+   * Allow localhost (127.0.0.1, ::ffff:127.0.0.1, ::1) when NODE_ENV !== "production".
    * @default true
    */
   allowLocalhostInDev?: boolean;
@@ -171,17 +171,18 @@ export function createIpGuard(options: IpGuardOptions = {}): IpGuard {
     .filter((r): r is ParsedRange => r !== null);
 
   function isAllowed(ip: string): boolean {
-    // Localhost bypass for development
-    if (allowLocalhostInDev && process.env.NODE_ENV !== 'production') {
-      if (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost') {
-        return true;
-      }
-    }
-
-    // Handle IPv6-mapped IPv4 addresses (e.g. ::ffff:52.173.123.5)
+    // Handle IPv6-mapped IPv4 addresses (e.g. ::ffff:127.0.0.1, ::ffff:52.173.123.5)
     let ipv4 = ip;
     if (ip.startsWith('::ffff:')) {
       ipv4 = ip.slice(7);
+    }
+
+    // Localhost bypass for development (checked after ::ffff: stripping so
+    // that both 127.0.0.1 and ::ffff:127.0.0.1 are handled correctly)
+    if (allowLocalhostInDev && process.env.NODE_ENV !== 'production') {
+      if (ipv4 === '127.0.0.1' || ip === '::1' || ip === 'localhost') {
+        return true;
+      }
     }
 
     const ipNum = parseIpv4(ipv4);

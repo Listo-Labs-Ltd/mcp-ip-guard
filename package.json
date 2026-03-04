@@ -1,6 +1,6 @@
 {
   "name": "@listo-ai/mcp-ip-guard",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "IP allowlist guard for MCP servers. Ships with OpenAI/ChatGPT egress IP ranges and supports custom CIDR ranges. Zero dependencies.",
   "type": "module",
   "main": "./dist/index.js",

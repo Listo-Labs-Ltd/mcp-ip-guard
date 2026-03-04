@@ -158,10 +158,17 @@ describe('createIpGuard', () => {
       expect(guard.isAllowed('::1')).toBe(false);
     });
 
+    it('allows IPv6-mapped localhost (::ffff:127.0.0.1) in non-production', () => {
+      process.env.NODE_ENV = 'development';
+      const guard = createIpGuard();
+      expect(guard.isAllowed('::ffff:127.0.0.1')).toBe(true);
+    });
+
     it('blocks localhost when allowLocalhostInDev is false', () => {
       process.env.NODE_ENV = 'development';
       const guard = createIpGuard({ allowLocalhostInDev: false });
       expect(guard.isAllowed('127.0.0.1')).toBe(false);
+      expect(guard.isAllowed('::ffff:127.0.0.1')).toBe(false);
     });
   });
 
