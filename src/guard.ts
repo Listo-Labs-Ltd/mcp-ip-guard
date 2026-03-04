@@ -210,7 +210,11 @@ export function createIpGuard(options: IpGuardOptions = {}): IpGuard {
         console.log(`[mcp-ip-guard] Blocked IP: ${clientIp} on ${path}`);
       }
 
-      onBlocked?.(clientIp, path);
+      try {
+        onBlocked?.(clientIp, path);
+      } catch {
+        // Never let a callback error suppress the 403 response
+      }
 
       res.writeHead(403, { 'content-type': 'application/json' });
       res.end(
