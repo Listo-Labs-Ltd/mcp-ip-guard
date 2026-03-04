@@ -23,7 +23,7 @@ jobs:
 
       - name: Read package version
         id: pkg
-        run: echo "version=$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(node -e 'process.stdout.write(require("./package.json").version)')" >> "$GITHUB_OUTPUT"
 
       - name: Check if tag exists
         id: tag
