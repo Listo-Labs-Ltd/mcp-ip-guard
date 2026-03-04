@@ -3,6 +3,8 @@ import { parseCidr, parseIpv4, ipMatchesRange } from './cidr.js';
 import type { ParsedRange } from './cidr.js';
 import { OPENAI_IP_RANGES } from './ranges.js';
 import { AZURE_IP_RANGES } from './azure-ranges.js';
+import { FASTLY_IP_RANGES } from './fastly-ranges.js';
+import { ANTHROPIC_IP_RANGES } from './anthropic-ranges.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,6 +24,22 @@ export interface IpGuardOptions {
    * @default false
    */
   includeAzureRanges?: boolean;
+
+  /**
+   * Include Fastly CDN public IP ranges in the allowlist.
+   * OpenAI uses Fastly as their edge CDN. In ChatGPT developer mode,
+   * requests may arrive from Fastly edge IPs (e.g. 140.248.x.x) rather
+   * than the dedicated OpenAI egress ranges.
+   * @default false
+   */
+  includeFastlyRanges?: boolean;
+
+  /**
+   * Include Anthropic (Claude) outbound IP ranges in the allowlist.
+   * Enable this when your MCP server receives tool calls from Claude.
+   * @default false
+   */
+  includeAnthropicRanges?: boolean;
 
   /**
    * Additional CIDR ranges or single IPs to allow.
@@ -147,6 +165,8 @@ export function createIpGuard(options: IpGuardOptions = {}): IpGuard {
   const {
     includeOpenAiRanges = true,
     includeAzureRanges = false,
+    includeFastlyRanges = false,
+    includeAnthropicRanges = false,
     additionalRanges = [],
     allowLocalhostInDev = true,
     debug = false,
@@ -160,6 +180,12 @@ export function createIpGuard(options: IpGuardOptions = {}): IpGuard {
   }
   if (includeAzureRanges) {
     allRanges.push(...AZURE_IP_RANGES);
+  }
+  if (includeFastlyRanges) {
+    allRanges.push(...FASTLY_IP_RANGES);
+  }
+  if (includeAnthropicRanges) {
+    allRanges.push(...ANTHROPIC_IP_RANGES);
   }
   for (const r of additionalRanges) {
     allRanges.push(normaliseCidr(r));

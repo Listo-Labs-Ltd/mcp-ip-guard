@@ -50,4 +50,6 @@ jobs:
           test -f dist/guard.js
           test -f dist/ranges.js
           test -f dist/azure-ranges.js
+          test -f dist/fastly-ranges.js
+          test -f dist/anthropic-ranges.js
           test -f dist/cidr.js

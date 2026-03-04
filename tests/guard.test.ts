@@ -136,6 +136,79 @@ describe('createIpGuard', () => {
     });
   });
 
+  describe('Anthropic ranges', () => {
+    it('does not include Anthropic ranges by default', () => {
+      const guard = createIpGuard({
+        includeOpenAiRanges: false,
+        allowLocalhostInDev: false,
+      });
+      // 160.79.104.0/21 covers 160.79.104.0 – 160.79.111.255
+      expect(guard.isAllowed('160.79.106.42')).toBe(false);
+    });
+
+    it('allows Anthropic IPs when includeAnthropicRanges is true', () => {
+      const guard = createIpGuard({
+        includeAnthropicRanges: true,
+        allowLocalhostInDev: false,
+      });
+      expect(guard.isAllowed('160.79.104.1')).toBe(true);
+      expect(guard.isAllowed('160.79.111.254')).toBe(true);
+    });
+
+    it('adds Anthropic ranges on top of OpenAI ranges', () => {
+      const guard = createIpGuard({
+        includeAnthropicRanges: true,
+        allowLocalhostInDev: false,
+      });
+      expect(guard.isAllowed('52.173.123.5')).toBe(true); // OpenAI
+      expect(guard.isAllowed('160.79.106.42')).toBe(true); // Anthropic
+    });
+
+    it('increases rangeCount when Anthropic ranges are included', () => {
+      const base = createIpGuard();
+      const withAnthropic = createIpGuard({ includeAnthropicRanges: true });
+      expect(withAnthropic.rangeCount).toBe(base.rangeCount + 1);
+    });
+  });
+
+  describe('Fastly ranges', () => {
+    it('does not include Fastly ranges by default', () => {
+      const guard = createIpGuard({
+        includeOpenAiRanges: false,
+        allowLocalhostInDev: false,
+      });
+      // 140.248.67.158 is a Fastly IP — should be blocked without the flag
+      expect(guard.isAllowed('140.248.67.158')).toBe(false);
+    });
+
+    it('allows Fastly IPs when includeFastlyRanges is true', () => {
+      const guard = createIpGuard({
+        includeFastlyRanges: true,
+        allowLocalhostInDev: false,
+      });
+      // 140.248.64.0/18 covers 140.248.64.0 – 140.248.127.255
+      expect(guard.isAllowed('140.248.67.158')).toBe(true);
+      expect(guard.isAllowed('140.248.67.124')).toBe(true);
+    });
+
+    it('adds Fastly ranges on top of OpenAI ranges', () => {
+      const guard = createIpGuard({
+        includeFastlyRanges: true,
+        allowLocalhostInDev: false,
+      });
+      // OpenAI IP still works
+      expect(guard.isAllowed('52.173.123.5')).toBe(true);
+      // Fastly IP also works
+      expect(guard.isAllowed('140.248.67.158')).toBe(true);
+    });
+
+    it('increases rangeCount when Fastly ranges are included', () => {
+      const base = createIpGuard();
+      const withFastly = createIpGuard({ includeFastlyRanges: true });
+      expect(withFastly.rangeCount).toBe(base.rangeCount + 19);
+    });
+  });
+
   describe('localhost handling', () => {
     const originalEnv = process.env.NODE_ENV;
 
