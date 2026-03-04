@@ -263,6 +263,25 @@ describe('createIpGuard', () => {
       const req = mockReq('10.0.0.1');
       expect(guard.getClientIp(req)).toBe('10.0.0.1');
     });
+
+    it('uses trustedProxyDepth=2 to skip CDN entry (Railway behind Fastly)', () => {
+      // XFF: "openai_ip, fastly_ip" — depth=2 picks openai_ip
+      const guard = createIpGuard({ trustedProxyDepth: 2 });
+      const req = mockReq('10.0.0.1', '52.173.123.5, 140.248.67.158');
+      expect(guard.getClientIp(req)).toBe('52.173.123.5');
+    });
+
+    it('uses trustedProxyDepth=1 (default) to get rightmost entry', () => {
+      const guard = createIpGuard();
+      const req = mockReq('10.0.0.1', '52.173.123.5, 140.248.67.158');
+      expect(guard.getClientIp(req)).toBe('140.248.67.158');
+    });
+
+    it('clamps trustedProxyDepth to XFF list length', () => {
+      const guard = createIpGuard({ trustedProxyDepth: 10 });
+      const req = mockReq('10.0.0.1', 'only_one_ip');
+      expect(guard.getClientIp(req)).toBe('only_one_ip');
+    });
   });
 
   describe('handleRequest', () => {

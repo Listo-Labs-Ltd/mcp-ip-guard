@@ -55,6 +55,22 @@ export interface IpGuardOptions {
   allowLocalhostInDev?: boolean;
 
   /**
+   * Number of trusted reverse proxies in front of the application.
+   * The client IP is extracted from `X-Forwarded-For[-depth]`.
+   *
+   * - `1` (default): single proxy (e.g. Railway or Cloudflare) — uses rightmost entry.
+   * - `2`: CDN → Load Balancer → App (e.g. Railway behind Fastly) — skips
+   *   the CDN's entry to reach the real client IP.
+   *
+   * **Important for Railway deployments:** Railway routes through Fastly CDN,
+   * so the rightmost XFF entry is Fastly's IP, not the caller's. Set to `2`
+   * to extract the actual client IP (e.g. OpenAI, Claude).
+   *
+   * @default 1
+   */
+  trustedProxyDepth?: number;
+
+  /**
    * Log blocked IPs to stdout.
    * @default false
    */
@@ -107,11 +123,15 @@ function normaliseCidr(cidr: string): string {
 /**
  * Extract the client IP from an incoming HTTP request.
  *
- * Uses the **rightmost** IP in the `X-Forwarded-For` header because that is
- * the entry added by the trusted edge proxy (e.g. Railway, Cloudflare) and
- * cannot be spoofed by the client.
+ * Uses `X-Forwarded-For[-trustedProxyDepth]` to select the IP added by the
+ * outermost trusted proxy. With depth=1 (default), this is the rightmost
+ * entry. With depth=2 (e.g. Railway behind Fastly CDN), it skips the CDN's
+ * entry to reach the real client IP.
  */
-function getClientIp(req: IncomingMessage): string {
+function getClientIp(
+  req: IncomingMessage,
+  trustedProxyDepth: number = 1,
+): string {
   const rawForwarded = req.headers['x-forwarded-for'];
   const forwarded = Array.isArray(rawForwarded)
     ? rawForwarded.join(', ')
@@ -122,8 +142,10 @@ function getClientIp(req: IncomingMessage): string {
       .split(',')
       .map((ip) => ip.trim())
       .filter(Boolean);
-    const clientIp = ips[ips.length - 1];
-    if (clientIp) return clientIp;
+    if (ips.length > 0) {
+      const idx = Math.min(trustedProxyDepth, ips.length);
+      return ips[ips.length - idx];
+    }
   }
 
   return req.socket.remoteAddress ?? 'unknown';
@@ -169,9 +191,12 @@ export function createIpGuard(options: IpGuardOptions = {}): IpGuard {
     includeAnthropicRanges = false,
     additionalRanges = [],
     allowLocalhostInDev = true,
+    trustedProxyDepth = 1,
     debug = false,
     onBlocked,
   } = options;
+
+  const effectiveDepth = Math.max(1, trustedProxyDepth);
 
   // Build the full list of CIDR strings
   const allRanges: string[] = [];
@@ -228,7 +253,7 @@ export function createIpGuard(options: IpGuardOptions = {}): IpGuard {
     req: IncomingMessage,
     res: ServerResponse,
   ): GuardResult {
-    const clientIp = getClientIp(req);
+    const clientIp = getClientIp(req, effectiveDepth);
 
     if (!isAllowed(clientIp)) {
       const path = req.url ?? 'unknown';
@@ -259,7 +284,7 @@ export function createIpGuard(options: IpGuardOptions = {}): IpGuard {
 
   return {
     isAllowed,
-    getClientIp,
+    getClientIp: (req: IncomingMessage) => getClientIp(req, effectiveDepth),
     handleRequest,
     rangeCount: parsedRanges.length,
   };
